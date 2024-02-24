@@ -6,4 +6,3 @@ Based upon "R Ecosystem, an enterprise approach"
 ## Abstract
 
 Main idea is isolates third-party packages from our business process
-cambios
