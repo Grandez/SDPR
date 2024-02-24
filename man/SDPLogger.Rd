@@ -5,11 +5,13 @@
 \title{Tratamiento de logs}
 \description{
 Clase base/abstract para el manejo de logs de las aplicaciones
+
 Escribe a
 \itemize{
-\item 1: Consola
-\item 2: Archivo
-\item 4: Base de datos
+\item 0 = No se genera log
+\item 1 = Consola
+\item 2 = Archivo
+\item 4 = Base de datos
 }
 
 Salvo para consola es necesario indicarle la informacion necesaria
@@ -19,6 +21,15 @@ respecto a ficheros y bases de datos
 
 ## ------------------------------------------------
 ## Method `SDPLogger$log`
+## ------------------------------------------------
+
+\dontrun{
+log(1,"Mensaje")
+log(1,"Numero \%d",  3)
+}
+
+## ------------------------------------------------
+## Method `SDPLogger$logc`
 ## ------------------------------------------------
 
 \dontrun{
@@ -38,14 +49,11 @@ log(1,"Numero \%d",  3)
 \section{Active bindings}{
 \if{html}{\out{<div class="r6-active-bindings">}}
 \describe{
-\item{\code{level}}{(\code{integer(1)})\cr
-Nivel de log en uso}
+\item{\code{level}}{Nivel de log}
 
-\item{\code{output}}{(\code{integer(1)})\cr
-Salidas de log activas}
+\item{\code{output}}{Salidas de log activas como combinacion/suma de}
 
-\item{\code{coloured}}{(\code{boolean})\cr
-Formatear las salidas por consola}
+\item{\code{coloured}}{Valor logico. Formatear las salidas por consola}
 }
 \if{html}{\out{</div>}}
 }
@@ -57,6 +65,7 @@ Formatear las salidas por consola}
 \item \href{#method-SDPR.LOGGER-setLogLevel}{\code{SDPLogger$setLogLevel()}}
 \item \href{#method-SDPR.LOGGER-setLogOutput}{\code{SDPLogger$setLogOutput()}}
 \item \href{#method-SDPR.LOGGER-log}{\code{SDPLogger$log()}}
+\item \href{#method-SDPR.LOGGER-logc}{\code{SDPLogger$logc()}}
 \item \href{#method-SDPR.LOGGER-err}{\code{SDPLogger$err()}}
 \item \href{#method-SDPR.LOGGER-clone}{\code{SDPLogger$clone()}}
 }
@@ -176,6 +185,42 @@ this
 Genera una linea de log en las salidas adecuadas
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SDPLogger$log(level, fmt, ...)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{level}}{(\code{integer(1)})   Minimo nivel de logging necesario.}
+
+\item{\code{fmt}}{(\code{character(1)}) Mensaje o formato de tipo printf a generar.}
+
+\item{\code{...}}{Parametros para formatear el mensaje.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+this
+}
+\subsection{Examples}{
+\if{html}{\out{<div class="r example copy">}}
+\preformatted{\dontrun{
+log(1,"Mensaje")
+log(1,"Numero \%d",  3)
+}
+}
+\if{html}{\out{</div>}}
+
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-SDPR.LOGGER-logc"></a>}}
+\if{latex}{\out{\hypertarget{method-SDPR.LOGGER-logc}{}}}
+\subsection{Method \code{logc()}}{
+Escribe el mensaje de log en las salidas adecuadas
+\strong{NO} finaliza la linea
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{SDPLogger$logc(level, fmt, ...)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{

@@ -2,10 +2,12 @@
 #'
 #' @description
 #' Clase base/abstract para el manejo de logs de las aplicaciones
+#'
 #' Escribe a
-#' - 1: Consola
-#' - 2: Archivo
-#' - 4: Base de datos
+#' - 0 = No se genera log
+#' - 1 = Consola
+#' - 2 = Archivo
+#' - 4 = Base de datos
 #'
 #' Salvo para consola es necesario indicarle la informacion necesaria
 #' respecto a ficheros y bases de datos
@@ -35,20 +37,17 @@ SDPLogger = R6::R6Class("SDPR.LOGGER"
    ,lock_class = TRUE
    ,portable   = TRUE
    ,active = list(
-       #' @field level (`integer(1)`)\cr
-       #' Nivel de log en uso
+       #' @field level Nivel de log
        level  = function(value) {
           if (!missing(value)) private$.level = value
           private$.level
        }
-       #' @field output (`integer(1)`)\cr
-       #' Salidas de log activas
+       #' @field output Salidas de log activas como combinacion/suma de
       ,output = function(value) {
           if (!missing(value)) private$.output = value
           private$.output
       }
-       #' @field coloured (`boolean`)\cr
-       #' Formatear las salidas por consola
+       #' @field coloured Valor logico. Formatear las salidas por consola
       ,coloured = function(value) {
           if (!missing(value)) private$.coloured = value
           private$.coloured
@@ -133,8 +132,9 @@ SDPLogger = R6::R6Class("SDPR.LOGGER"
          private$println(private$type$LOG, level, fmt, ...)
          invisible(self)
      }
-     #' @description Genera una linea de error.
-     #' Los errores en consola son dirigidos a stderr
+     #' @description Escribe el mensaje de log en las salidas adecuadas
+     #' **NO** finaliza la linea
+     #' @param level (`integer(1)`)   Minimo nivel de logging necesario.
      #' @param fmt   (`character(1)`) Mensaje o formato de tipo printf a generar.
      #' @param ...                    Parametros para formatear el mensaje.
      #' @return this
@@ -143,15 +143,17 @@ SDPLogger = R6::R6Class("SDPR.LOGGER"
      #' log(1,"Mensaje")
      #' log(1,"Numero %d",  3)
      #'}
-
+     ,logc         = function(level, fmt,...) {
+         private$print(private$type$LOG, level, fmt, ...)
+         invisible(self)
+     }
+     #' @description Genera una linea de error.
+     #' Los errores en consola son dirigidos a stderr.
+     #' @param fmt  Mensaje o formato de tipo printf a generar.
+     #' @param ...  Parametros para formatear el mensaje.
+     #' @return this
      ,err          = function(fmt, ...) {
-        browser()
-        msg = tryCatch({
-                 private$mountMessage(fmt, ...)
-              }, error = function(e) {
-                 paste0("Malformed message: \'", fmt, "\'")
-              })
-        private$println(private$type$ERR, 0, msg)
+        private$print(private$type$ERR, 0, fmt, ...)
         invisible(self)
       }
 
@@ -286,6 +288,7 @@ SDPLogger = R6::R6Class("SDPR.LOGGER"
        ,.toConsole = FALSE
        ,.toFile    = FALSE
        ,.cont = FALSE
+       ,NL    = TRUE
        ,logFile  = NULL
 
        # ,modName  = "YATA"
@@ -294,19 +297,21 @@ SDPLogger = R6::R6Class("SDPR.LOGGER"
        ,println = function(type, level, fmt, ...) {
           if (level > private$.level) return()
           private$.cont = FALSE
-          ansi = private$void
-          msg = private$mountMessage(fmt, ...)
-          if (is.null(msg)) { # Error al montar mensaje
-             type = private$type$ERR
-             msg  = paste0("Malformed message: \'", fmt, "\'")
-             ansi = crayon::red()
-          }
-          private$print(type, paste0(msg, '\n'),  ansi)
+          data = private$mountMessage(type, fmt, ...)
+          data$msg = paste0(data$msg, '\n')
+          private$printMsg(data$type, data$msg, data$ansi)
        }
-       ,print = function(type, msg, ansi=private$void) {
+       ,print = function(type, level, fmt, ...) { # msg, ansi=private$void) {
+          if (level > private$.level) return()
+          private$.cont = TRUE
+          data = private$mountMessage(type, fmt, ...)
+          private$printMsg(data$type, data$msg, data$ansi)
+       }
+       ,printMsg = function(type, msg, ansi) { # msg, ansi=private$void) {
           if (private$.toFile)    private$toFile(type, msg)
           if (private$.toConsole) private$toConsole(type, msg, ansi)
        }
+
         ,toFile = function(type, txt, ...) {
 #            if (level > level) return()
 #            str = ""
@@ -320,19 +325,17 @@ SDPLogger = R6::R6Class("SDPR.LOGGER"
 #            cat(paste0(line, "\n"), file=logFile, append=TRUE)
         }
         ,toConsole = function(type, txt, ansi) {
-          msg = txt
-          if (!private$.cont) {
-              str  = format(Sys.time(), "%H:%M:%S")
-              msg  = gsub("\\n","          \n", txt)
-#           prfx = NULL
-#           if (type == self$type$LOG) prfx = sprintf("LOG%02d -", level)
-              msg = paste(str, "-", txt)
-          }
-          if (private$isError(type)) {
-             cat(crayon::red(msg), file = stderr())
-          } else {
-             cat(msg)
-          }
+           msg  = substring(txt,1, nchar(txt) - 1)
+           last = substring(txt, nchar(txt))
+           if (private$NL) msg = paste(format(Sys.time(), "%H:%M:%S"), "-", msg)
+           msg  = gsub("\\n","\n           ", msg)
+           msg = paste0(msg, last)
+           private$NL = (last == "\n")
+           if (private$isError(type)) {
+               cat(crayon::red(msg), file = stderr())
+           } else {
+              cat(msg)
+           }
         }
        ,void = function(txt) { txt }
 
@@ -378,14 +381,19 @@ SDPLogger = R6::R6Class("SDPR.LOGGER"
        ,getEnvString = function(prfx, value) {
            Sys.getenv(paste0(prfx, value))
        }
-       ,mountMessage = function(fmt, ...) {
-           tryCatch({
+       ,mountMessage = function(logType, fmt, ...) {
+          data =list(type = logType, msg = NULL, ansi = private$void)
+          data$msg =  tryCatch({
               txt = sprintf(fmt, ...)
               gsub("/t", "    ", txt, fixed=TRUE)
            }, error = function (e) {
-              NULL
+              paste0("Malformed message: \'",fmt, "\'")
+              data$type = private$type$ERROR
+              data$ansi = crayon::red()
            })
+          data
        }
        ,isError = function (type) { type == private$type$ERROR }
     )
 )
+
