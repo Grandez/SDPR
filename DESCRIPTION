@@ -1,0 +1,15 @@
+Package: sdpr
+Type: Package
+Title: Common tools
+Version: 1.0.0
+Author: Grandez <jggrandez@gmail.com>
+Maintainer: Grandez <jggrandez@gmail.com>
+Description: Conjunto de utilidades por categorias.
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.1
+Imports: R6, crayon, anytime, stringr
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+License: MIT + file LICENSE
