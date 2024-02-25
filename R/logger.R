@@ -262,10 +262,6 @@ SDPLogger = R6::R6Class("SDPR.LOGGER"
     #       # .toFile(self$type$ERROR, 0, sprintf( "Class: %s;Message: %s;Fields: %d;%s"
     #       #                                     ,class(cond)[2], cond, length(tags),data))
     #    }
-    #  ,running = function () {
-    #     # Friendly method for processes active
-    #     message(paste("Process",  modName, "already running"))
-    #  }
     #  #######################################################################
     #  # Only for console
     #  #######################################################################
