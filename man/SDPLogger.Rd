@@ -36,15 +36,6 @@ log(1,"Numero \%d",  3)
 log(1,"Mensaje")
 log(1,"Numero \%d",  3)
 }
-
-## ------------------------------------------------
-## Method `SDPLogger$err`
-## ------------------------------------------------
-
-\dontrun{
-log(1,"Mensaje")
-log(1,"Numero \%d",  3)
-}
 }
 \section{Active bindings}{
 \if{html}{\out{<div class="r6-active-bindings">}}
@@ -64,9 +55,11 @@ log(1,"Numero \%d",  3)
 \item \href{#method-SDPR.LOGGER-finalize}{\code{SDPLogger$finalize()}}
 \item \href{#method-SDPR.LOGGER-setLogLevel}{\code{SDPLogger$setLogLevel()}}
 \item \href{#method-SDPR.LOGGER-setLogOutput}{\code{SDPLogger$setLogOutput()}}
+\item \href{#method-SDPR.LOGGER-setLogFile}{\code{SDPLogger$setLogFile()}}
 \item \href{#method-SDPR.LOGGER-log}{\code{SDPLogger$log()}}
 \item \href{#method-SDPR.LOGGER-logc}{\code{SDPLogger$logc()}}
 \item \href{#method-SDPR.LOGGER-err}{\code{SDPLogger$err()}}
+\item \href{#method-SDPR.LOGGER-warn}{\code{SDPLogger$warn()}}
 \item \href{#method-SDPR.LOGGER-clone}{\code{SDPLogger$clone()}}
 }
 }
@@ -179,6 +172,26 @@ this
 }
 }
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-SDPR.LOGGER-setLogFile"></a>}}
+\if{latex}{\out{\hypertarget{method-SDPR.LOGGER-setLogFile}{}}}
+\subsection{Method \code{setLogFile()}}{
+Establece el fichero de logging
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{SDPLogger$setLogFile(file)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{file}}{Nombre del fichero}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+this
+}
+}
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-SDPR.LOGGER-log"></a>}}
 \if{latex}{\out{\hypertarget{method-SDPR.LOGGER-log}{}}}
 \subsection{Method \code{log()}}{
@@ -254,7 +267,7 @@ log(1,"Numero \%d",  3)
 \if{latex}{\out{\hypertarget{method-SDPR.LOGGER-err}{}}}
 \subsection{Method \code{err()}}{
 Genera una linea de error.
-Los errores en consola son dirigidos a stderr
+Los errores en consola son dirigidos a stderr.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SDPLogger$err(fmt, ...)}\if{html}{\out{</div>}}
 }
@@ -262,7 +275,7 @@ Los errores en consola son dirigidos a stderr
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{fmt}}{(\code{character(1)}) Mensaje o formato de tipo printf a generar.}
+\item{\code{fmt}}{Mensaje o formato de tipo printf a generar.}
 
 \item{\code{...}}{Parametros para formatear el mensaje.}
 }
@@ -271,17 +284,28 @@ Los errores en consola son dirigidos a stderr
 \subsection{Returns}{
 this
 }
-\subsection{Examples}{
-\if{html}{\out{<div class="r example copy">}}
-\preformatted{\dontrun{
-log(1,"Mensaje")
-log(1,"Numero \%d",  3)
 }
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-SDPR.LOGGER-warn"></a>}}
+\if{latex}{\out{\hypertarget{method-SDPR.LOGGER-warn}{}}}
+\subsection{Method \code{warn()}}{
+Genera un mensaje de aviso.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{SDPLogger$warn(fmt, ...)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{fmt}}{Mensaje o formato de tipo printf a generar.}
+
+\item{\code{...}}{Parametros para formatear el mensaje.}
 }
 \if{html}{\out{</div>}}
-
 }
-
+\subsection{Returns}{
+this
+}
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-SDPR.LOGGER-clone"></a>}}

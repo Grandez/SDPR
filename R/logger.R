@@ -52,7 +52,6 @@ SDPLogger = R6::R6Class("SDPR.LOGGER"
           if (!missing(value)) private$.coloured = value
           private$.coloured
        }
-
    )
   ,public = list(
      #  valid   = TRUE
@@ -94,13 +93,19 @@ SDPLogger = R6::R6Class("SDPR.LOGGER"
      #'   Es una manera alternativa de inicializar el logger cuando este es compartido por
      #'   varios modulos de una misma aplicacion
      initialize   = function(module="general", level, output, file, envvars) { #}, shared=FALSE) {
-         private$.module   = module
+         private$module   = module
          private$initLogger(level, output, file, envvars, shared)
      }
      #' @description
      #' Destructor. Cierra ficheros y limpia memoria
      ,finalize     = function()       {
+        tryCatch({
         if (!is.null(private$logFile) && isOpen(private$logFile)) close(private$logFile)
+        }, error = function (e) {
+           message("da error en el finalize")
+           #Ocultar el error
+        })
+
      }
      #' @description Establece el nuevo nivel de logging
      #' @param level (`integer(1)`).
@@ -116,6 +121,14 @@ SDPLogger = R6::R6Class("SDPR.LOGGER"
         private$.output = output
         if (bitwAnd(private$.output, 1) > 0) private$toConsole = TRUE
         if (bitwAnd(private$.output, 2) > 0) private$toFile    = TRUE
+        invisible(self)
+     }
+     #' @description Establece el fichero de logging
+     #' @param file Nombre del fichero
+     #' @return this
+     ,setLogFile = function(file) {
+        private$.file = file
+        private$openFile()
         invisible(self)
      }
      #' @description Genera una linea de log en las salidas adecuadas
@@ -153,14 +166,20 @@ SDPLogger = R6::R6Class("SDPR.LOGGER"
      #' @param ...  Parametros para formatear el mensaje.
      #' @return this
      ,err          = function(fmt, ...) {
+        old = private$.toConsole
+        private$.toConsole = TRUE
         private$print(private$type$ERR, 0, fmt, ...)
+        private$.toConsole = old
         invisible(self)
       }
-
-    #  ,logn         = function(level, fmt,...) {
-    #     .print(self$type$LOG, level, .mountMessage(fmt, ...))
-    #  }
-    #  ,warning      = function(fmt, ...) { message(.mountMessage(fmt, ...)) }
+     #' @description Genera un mensaje de aviso.
+     #' @param fmt  Mensaje o formato de tipo printf a generar.
+     #' @param ...  Parametros para formatear el mensaje.
+     #' @return this
+       ,warn      = function(fmt, ...) {
+           private$println(private$type$WARNING, 0, fmt, ...)
+           invisible(self)
+       }
     #  ,doing = function(level, fmt, ...) {
     #    # Proceso en marcha, espera un done. Fichero se guarda
     #      .print(self$type$ACT, level, .mountMessage(fmt, ...))
@@ -279,63 +298,64 @@ SDPLogger = R6::R6Class("SDPR.LOGGER"
 
   )
     ,private = list(
-        type = list(PROCESS =  1,BATCH   =  5,LOG     = 10,SUMMARY = 11, ACT=20, ERROR=99)
-       ,.level  = 0
-       ,.output = 0
-       ,.module = "SDPLogger"
-       ,.file     = NULL
-       ,.coloured = TRUE
+        type = list(PROCESS =  1,BATCH   =  5,LOG     = 10,SUMMARY = 11, ACT=20, WARNING=30, ERROR=99)
+       ,.level     = 0
+       ,.output    = 0
+       ,.file      = NULL
+       ,.coloured  = TRUE
        ,.toConsole = FALSE
        ,.toFile    = FALSE
-       ,.cont = FALSE
-       ,NL    = TRUE
-       ,logFile  = NULL
+       ,module     = "SDPLogger"
+       ,NLConsole  = TRUE
+       ,NLFile     = TRUE
+       ,logFile    = NULL
 
        # ,modName  = "YATA"
        # ,logTimers = NULL
        # ,logNames  = NULL
        ,println = function(type, level, fmt, ...) {
           if (level > private$.level) return()
-          private$.cont = FALSE
           data = private$mountMessage(type, fmt, ...)
-          data$msg = paste0(data$msg, '\n')
+          if (substring(data$msg, nchar(data$msg)) != "\n") data$msg = paste0(data$msg, '\n')
           private$printMsg(data$type, data$msg, data$ansi)
        }
        ,print = function(type, level, fmt, ...) { # msg, ansi=private$void) {
           if (level > private$.level) return()
-          private$.cont = TRUE
           data = private$mountMessage(type, fmt, ...)
           private$printMsg(data$type, data$msg, data$ansi)
        }
-       ,printMsg = function(type, msg, ansi) { # msg, ansi=private$void) {
-          if (private$.toFile)    private$toFile(type, msg)
-          if (private$.toConsole) private$toConsole(type, msg, ansi)
-       }
-
-        ,toFile = function(type, txt, ...) {
-#            if (level > level) return()
-#            str = ""
-#            if (!.cont) {
-#                str = Sys.time()
-#                str = sub(" ", "-", str)
-#            }
-#            line = paste(str,modName,type,level,txt, sep=";")
-#            rest = paste(list(...), collapse=";")
-#            if (nchar(rest) > 0) line = paste0(line, ";",rest)
-#            cat(paste0(line, "\n"), file=logFile, append=TRUE)
-        }
-        ,toConsole = function(type, txt, ansi) {
+       ,printMsg = function(type, txt, ansi) { # msg, ansi=private$void) {
            msg  = substring(txt,1, nchar(txt) - 1)
            last = substring(txt, nchar(txt))
-           if (private$NL) msg = paste(format(Sys.time(), "%H:%M:%S"), "-", msg)
-           msg  = gsub("\\n","\n           ", msg)
-           msg = paste0(msg, last)
-           private$NL = (last == "\n")
+           if (private$.toFile)    private$toFile(type, msg, last)
+           if (private$.toConsole) private$toConsole(type, msg, last, ansi)
+       }
+      ,toFile = function(type, msg, last) {
+           # Verificar si el archivo existe cuando se va a usar
+           if (is.null(private$logFile)) private$openFile()
+           if (!private$.toFile) return()
+           txt  = msg
+           dt = paste(as.integer(Sys.time()),format(Sys.time(), "%Y/%m/%d %H:%M:%S"),sep=";")
+           dt = paste(dt, private$module,type, sep=';')
+           if (private$NLFile) txt = paste(dt, msg, sep=';')
+           txt  = gsub("\\n",paste0("\n",dt,";"), txt)
+           txt = paste0(txt, last)
+           cat(txt, file=private$logFile, append=TRUE)
+           private$NLFile = (last == "\n")
+        }
+        ,toConsole = function(type, msg, last, ansi) {
+           txt  = msg
+           dt = format(Sys.time(), "%H:%M:%S")
+           if (private$NLConsole) txt = paste(format(Sys.time(), "%H:%M:%S"), "-", msg)
+           txt  = gsub("\\n","\n           ", txt)
+
+           txt = paste0(txt, last)
            if (private$isError(type)) {
-               cat(crayon::red(msg), file = stderr())
+               cat(crayon::red(txt), file = stderr())
            } else {
-              cat(msg)
+              cat(ansi(txt))
            }
+           private$NLConsole = (last == "\n")
         }
        ,void = function(txt) { txt }
 
@@ -352,26 +372,7 @@ SDPLogger = R6::R6Class("SDPR.LOGGER"
 
            private$.toConsole = ifelse (bitwAnd(private$.output, 1) > 0, TRUE, FALSE)
            private$.toFile    = ifelse (bitwAnd(private$.output, 2) > 0, TRUE, FALSE)
-           #     wd      = yataGetDirectory("log")
-           #     logfile = ifelse(shared, "YATA", modName)
-
-           # value = Sys.getenv("YATA_LOG_LEVEL")
-           # value = suppressWarnings(as.integer(value))
-           # if (!is.na(value)) private$level  = value
-           #
-           # if (!missing(level)) private$level  = level
-           #
-           # value = Sys.getenv("YATA_LOG_OUTPUT")
-           # value = suppressWarnings(as.integer(value))
-           # if (!is.na(value))    private$output = value
-           # if (!missing(output)) private$output = output
-           #
-           # if (bitwAnd(output, 2) > 0) {
-           #     wd      = yataGetDirectory("log")
-           #     logfile = ifelse(shared, "YATA", modName)
-           #     logfile = normalizePath(file.path(wd, paste0(logfile, ".log")), mustWork = FALSE)
-           #     private$logFile = file(logfile, open="at", blocking = FALSE)
-           # }
+           if (!is.null(private$.file)) private$openFile()
        }
        ,getEnvInteger = function(prfx, value) {
            value = Sys.getenv(paste0(prfx, value))
@@ -381,8 +382,25 @@ SDPLogger = R6::R6Class("SDPR.LOGGER"
        ,getEnvString = function(prfx, value) {
            Sys.getenv(paste0(prfx, value))
        }
+       ,openFile = function () {
+          if (is.null(private$.file)) {
+             private$fileWarning(private$.file)
+             return()
+          }
+          tryCatch({
+            logfile = normalizePath(private$.file, mustWork = FALSE)
+            private$logFile = file(logfile, open="at", blocking = FALSE)
+          }, warning = function (e) {
+             private$fileWarning(private$.file)
+          }, error = function (e) {
+             private$fileWarning(private$.file)
+          })
+       }
        ,mountMessage = function(logType, fmt, ...) {
           data =list(type = logType, msg = NULL, ansi = private$void)
+          if (logType == private$type$WARNING) data$ansi = crayon::blue
+          if (logType == private$type$ERROR)  data$ansi  = crayon::red
+
           data$msg =  tryCatch({
               txt = sprintf(fmt, ...)
               gsub("/t", "    ", txt, fixed=TRUE)
@@ -394,6 +412,11 @@ SDPLogger = R6::R6Class("SDPR.LOGGER"
           data
        }
        ,isError = function (type) { type == private$type$ERROR }
+       ,fileWarning = function (file) {
+          private$.toFile = FALSE
+          if (is.null(file))  self$warn("No se ha especificado fichero de logging")
+          if (!is.null(file)) self$warn(paste("No se ha podido abrir el fichero de logging:", file))
+       }
     )
 )
 
